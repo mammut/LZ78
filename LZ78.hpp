@@ -1,11 +1,9 @@
 /**
  * Copyright (C) 2017 UTFSM
  * Author: Diego Arroyuelo
- * Modified by: Juan Pablo Escalona
+ * Modified by: Juan Pablo Escalona @ 2017-03-23
  *
  * LZ78 Compression tree implementation for big alphabets
- * uint64_t para la cantidad de nodos
- * uint32_t para las letras
  */
 #include <unordered_map>
 #include <vector>
@@ -13,73 +11,83 @@
 namespace LZ78
 {
 
-typedef uint32_t alphabet;
-
-class trieNode {
+template <class A = uint32_t> // default alphabet
+class trie_node {
   private:
-	uint64_t id;
-	std::unordered_map<alphabet, trieNode*> children;
-	std::unordered_map<alphabet, trieNode*>::iterator curChild;
+    uint64_t id;
+    std::unordered_map<A, trie_node<A> *> children;
+    typename std::unordered_map<A, trie_node<A> *>::iterator cur_child;
 
   public:
-	bool hasChild(alphabet letter) { return children.find(letter) != children.end(); }
-	trieNode *child(alphabet letter) {return children[letter];}
-	void addChild(alphabet letter, uint64_t _id) {
-	   children[letter] = new trieNode();
-	   children[letter]->id = _id;
-	}
-	alphabet nChildren() {return children.size();}
-    void getLetters(std::vector<alphabet> *V) {
-	   for(std::unordered_map<alphabet,trieNode*>::iterator it = children.begin(); it != children.end(); ++it)
-          V->push_back(it->first);
-	}
-	void firstChild() {curChild = children.begin();}
-	void nextChild() {++curChild;}
-    trieNode *getCurChild() { return curChild->second;}
+    trie_node(uint64_t _id) { id = _id; }
+
+    trie_node *child(A letter) { return children[letter]; }
+
+    bool has_child(A letter) { return children.find(letter) != end(children); }
+
+    void add_child(A letter, uint64_t _id) {
+        children[letter] = new trie_node(_id);
+    }
+
+    void getLetters(std::vector<A> &V) {
+        for(auto &i: children)
+            V.push_back(i.first);
+    }
+
+    A nChildren() {return children.size(); }
+
+    void first_child() { cur_child = begin(children); }
+
+    void next_child() { ++cur_child; }
+
+    trie_node *get_cur_child() { return cur_child->second; }
+
+    ~trie_node() { for(auto &i: children) delete i.second; }
 };
 
+template <class A = uint32_t>
 class trie {
-	trieNode *root;
-	uint64_t nNodes;
+    trie_node<A> *root;
+    uint64_t nNodes;
+
   public:
-	trie() { root = new trieNode(); nNodes = 0; }
-	uint64_t nodes() { return nNodes; }
-	trieNode *getRoot() { return root; }
-	void addNode(trieNode *t, alphabet letter) {
-		t->addChild(letter, nNodes++);
-	}
+    trie() { nNodes = 0; root = NULL; }
+    uint64_t nodes() { return nNodes; }
+
+    void parse(A *text, uint64_t n) {
+        trie_node<A> *curNode = root;
+        if (curNode == NULL) {
+            root = new trie_node<A>(nNodes++);
+            curNode = root;
+        }
+
+        for (uint64_t i = 0; i < n; ++i) {
+            if (curNode->has_child(text[i]))
+                curNode = curNode->child(text[i]);
+            else {
+                curNode->add_child(text[i], nNodes++);
+                curNode = root;
+            }
+        }
+    }
+
+    void generateDFUDS(std::vector<char> &DFUDS, std::vector<A> &letters) {
+        return generateDFUDS(root, DFUDS, letters);
+    }
+
+    void generateDFUDS(trie_node<A> *T, std::vector<char> &DFUDS, std::vector<A> &letters) {
+        DFUDS.insert(end(DFUDS), T->nChildren(), '(');
+        DFUDS.push_back(')');
+
+        T->getLetters(letters);
+        T->first_child();
+        for (A i = 0; i < T->nChildren(); ++i) {
+            generateDFUDS(T->get_cur_child(), DFUDS, letters);
+            T->next_child();
+        }
+    }
+
+    ~trie() { if (root != NULL) delete root; }
 };
-
-
-
-trie *lz78Parsing(alphabet *Text, uint64_t n) {
-   trie *LZT = new trie();
-   trieNode *curNode = LZT->getRoot();
-   uint64_t i;
-
-   for (i=0; i < n; i++) {
-      if (curNode->hasChild(Text[i]))
-         curNode = curNode->child(Text[i]);
-      else {
-	     LZT->addNode(curNode, Text[i]);
-		 curNode = LZT->getRoot();
-	  }
-   }
-   return LZT;
-}
-
-
-void generateDFUDS(trieNode *T, std::vector<char> &DFUDS, std::vector<alphabet> letters) {
-   for (alphabet i = 0; i < T->nChildren(); i++) DFUDS.push_back('(');
-   DFUDS.push_back(')');
-
-   T->getLetters(&letters);
-
-   T->firstChild();
-   for ( alphabet i = 0; i < T->nChildren(); i++) {
-   	   generateDFUDS(T->getCurChild(), DFUDS, letters);
-   	   T->nextChild();
-   }
-}
 
 } // end LZ78 Namespace
