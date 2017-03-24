@@ -7,6 +7,7 @@
  */
 #include <unordered_map>
 #include <vector>
+ #include <stdint.h>
 
 namespace LZ78
 {
@@ -34,7 +35,7 @@ class trie_node {
             V.push_back(i.first);
     }
 
-    A nChildren() {return children.size(); }
+    A nChildren() { return children.size(); }
 
     void first_child() { cur_child = begin(children); }
 
@@ -48,25 +49,25 @@ class trie_node {
 template <class A = uint32_t>
 class trie {
     trie_node<A> *root;
-    uint64_t nNodes;
+    uint64_t n_nodes;
 
   public:
-    trie() { nNodes = 0; root = NULL; }
-    uint64_t nodes() { return nNodes; }
+    trie() { n_nodes = 0; root = NULL; }
+    uint64_t nodes() { return n_nodes; }
 
     void parse(A *text, uint64_t n) {
-        trie_node<A> *curNode = root;
-        if (curNode == NULL) {
-            root = new trie_node<A>(nNodes++);
-            curNode = root;
+        trie_node<A> *cur_node = root;
+        if (cur_node == NULL) {
+            root = new trie_node<A>(n_nodes++);
+            cur_node = root;
         }
 
         for (uint64_t i = 0; i < n; ++i) {
-            if (curNode->has_child(text[i]))
-                curNode = curNode->child(text[i]);
+            if (cur_node->has_child(text[i]))
+                cur_node = cur_node->child(text[i]);
             else {
-                curNode->add_child(text[i], nNodes++);
-                curNode = root;
+                cur_node->add_child(text[i], n_nodes++);
+                cur_node = root;
             }
         }
     }

@@ -1,14 +1,34 @@
 #include <iostream>
 #include <vector>
+#include <cstdio>
+#include <stdint.h>
 #include "LZ78.hpp"
 
 typedef uint32_t alphabet;
 
 int main(int argc, char const *argv[])
 {
+    if (argc != 3) {
+        std::cout << "Uso:\n";
+        std::cout << "./LZ78-parser input output\n";
+        return 1;
+    }
+    std::string input = argv[1];
+    std::string output = argv[2];
+
+    FILE *file;
+    uint64_t length, result;
+
+    file = fopen(input.c_str(), "rb");
+    fseek(file, 0, SEEK_END);
+    length = ftell(file)/sizeof(alphabet);
+    rewind(file);
+    alphabet *buffer = new alphabet[length];
+    result = fread(buffer, sizeof(alphabet), length, file);
+    if (result == 0) return 1;
+
     LZ78::trie<alphabet> tree = LZ78::trie<alphabet>();
-    alphabet text[] = {1,2,3,4,1,1,2,6};
-    tree.parse(text, 8);
+    tree.parse(buffer, length);
 
     std::vector<char> DFUDS;
     std::vector<alphabet> letters;
@@ -18,11 +38,17 @@ int main(int argc, char const *argv[])
 
     tree.generateDFUDS(DFUDS, letters);
 
-    for(auto const &i: DFUDS) std::cout << i;
-    std::cout << '\n';
+    FILE *ascii = fopen( (output + ".ascii").c_str(), "wb");
+    for(auto const &i: DFUDS) fwrite(&i, sizeof(uint8_t), 1, ascii);
+    fclose(ascii);
 
-    for(auto const &i: letters) std::cout << i;
-    std::cout << '\n';
+    FILE *letts = fopen( (output + ".letts").c_str(), "wb");
+    /** uint64_t :: Number of nodes */
+    uint64_t total_nodes = tree.nodes();
+    fwrite(&total_nodes, sizeof(uint64_t), 1, letts);
+
+    for(auto const &i: letters) fwrite(&i, sizeof(uint32_t), 1, letts);
+    fclose(letts);
 
     return 0;
 }
