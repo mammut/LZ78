@@ -1,7 +1,7 @@
 CC = g++
 DEBUG = -g
 CFLAGS = -Wall $(DEBUG) -std=c++11 -O2
-LDFLAGS = -Wall $(DEBUG) -O2
+LDFLAGS = -Wall $(DEBUG) -O2 -std=c++11
 EXEC = LZ78-parser
 OBJS = main.o
 
