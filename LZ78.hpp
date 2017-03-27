@@ -8,7 +8,8 @@
 #include <map>
 #include <vector>
 #include <queue>
- #include <stdint.h>
+#include <unordered_set>
+#include <stdint.h>
 
 namespace LZ78
 {
@@ -50,6 +51,7 @@ template <class A = uint32_t>
 class trie {
   private:
     trie_node<A> *root;
+    std::unordered_set<A> alphabet;
     uint64_t n_nodes;
 
   public:
@@ -63,6 +65,12 @@ class trie {
     uint64_t nodes() { return n_nodes; }
 
     /**
+     * Number of elements in the alphabet
+     * @return alphabet size
+     */
+    uint64_t alphabet_size() { return alphabet.size(); }
+
+    /**
      * Parse the given text of a given alphabet
      * @param text const array of type alphabet
      * @param n    length of the array
@@ -72,13 +80,15 @@ class trie {
             root = new trie_node<A>(n_nodes++);
 
         trie_node<A> *cur_node = root;
-        for (uint64_t i = 0; i < n; ++i)
+        for (uint64_t i = 0; i < n; ++i){
+            alphabet.insert(text[i]);
             if (cur_node->has_child(text[i]))
                 cur_node = cur_node->child(text[i]);
             else {
                 cur_node->add_child(text[i], n_nodes++);
                 cur_node = root;
             }
+        }
     }
 
     /**
