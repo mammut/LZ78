@@ -8,7 +8,7 @@
 #include <map>
 #include <vector>
 #include <queue>
-#include <unordered_set>
+#include <iostream>
 #include <stdint.h>
 
 namespace LZ78
@@ -38,7 +38,13 @@ class trie_node {
             V.push_back(i.first);
     }
 
-    A n_children() { return children.size(); }
+    void getLetters(std::vector<uint64_t> &V, std::map<A, uint64_t> &ids, const uint64_t &k, const uint64_t &ii) {
+        for(auto &i: children){
+            V.push_back(k * ii + ids[i.first]);
+        }
+    }
+
+    uint64_t n_children() { return children.size(); }
 
     void first_child() { cur_child = begin(children); }
 
@@ -51,11 +57,15 @@ template <class A = uint32_t>
 class trie {
   private:
     trie_node<A> *root;
-    std::unordered_set<A> alphabet;
+    std::map<A, uint64_t> alphabet_to_id;
     uint64_t n_nodes;
+    uint64_t alph_id;
 
   public:
-    trie() { n_nodes = 0; root = NULL; }
+    std::vector<A> alphabet;
+
+  public:
+    trie() { n_nodes = 0; alph_id = 0; root = NULL; }
     ~trie() { if (root != NULL) delete root; }
 
     /**
@@ -80,8 +90,11 @@ class trie {
             root = new trie_node<A>(n_nodes++);
 
         trie_node<A> *cur_node = root;
-        for (uint64_t i = 0; i < n; ++i){
-            alphabet.insert(text[i]);
+        for (uint64_t i = 0; i < n; ++i) {
+            if (alphabet_to_id.find(text[i]) == end(alphabet_to_id)) {
+                alphabet_to_id[text[i]] = alph_id++;
+                alphabet.push_back(text[i]);
+            }
             if (cur_node->has_child(text[i]))
                 cur_node = cur_node->child(text[i]);
             else {
@@ -107,7 +120,7 @@ class trie {
      * @param LOUDS   vector of bools
      * @param letters vector of alphabet
      */
-    void generateLOUDS(std::vector<bool> &LOUDS, std::vector<A> &letters) {
+    void generateLOUDS(std::vector<char> &LOUDS, std::vector<A> &letters) {
         std::queue<trie_node<A> *> q;
         if (root == NULL) return;
 
@@ -123,6 +136,26 @@ class trie {
                 LOUDS.push_back(1);
             }
             LOUDS.push_back(0);
+        }
+    }
+
+    void generate_cardinalLOUDS(std::vector<uint64_t> &LOUDS) {
+
+        std::queue<trie_node<A> *> q;
+        if (root == NULL) return;
+
+        uint64_t ii = 0;
+        uint64_t k = alphabet_size();
+
+        q.push(root);
+        while ( ! q.empty()) {
+            trie_node<A> *T = q.front(); q.pop();
+            T->first_child();
+            T->getLetters(LOUDS, alphabet_to_id, k, ii++);
+            for (uint64_t i = 0; i < T->n_children(); ++i) {
+                q.push(T->get_cur_child());
+                T->next_child();
+            }
         }
     }
 
